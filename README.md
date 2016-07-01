@@ -1,7 +1,7 @@
 MIMO Volterra Modified Alternating Linear Scheme (MVMALS) for Matlab&copy;/Octave&copy;
 --------------------------------------------------------------------------------------------------
 
-This package contains Matlab/Octave code for the identification of MIMO Volterra systems using the (Modified) Alternating Linear Scheme (MALS). The 
+This package contains Matlab/Octave code for the identification of MIMO Volterra systems using the (Modified) Alternating Linear Scheme (MALS). 
 
 1. Functions
 ------------
