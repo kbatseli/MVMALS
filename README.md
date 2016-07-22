@@ -24,4 +24,4 @@ MIMO Volterra Modified Alternating Linear Scheme (MVMALS) algorithm for solving 
 
 "Tensor Train alternating linear scheme for MIMO Volterra system identification"
 
-Authors: Kim Batselier, Ngai Wong
+Authors: Kim Batselier, Zhongming Chen, Ngai Wong
