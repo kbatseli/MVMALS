@@ -63,7 +63,7 @@ while itr<2 || ((e(itr) < e(itr-1)) && (itr < MAXITR) && e(itr) > THRESHOLD)
     % only check residual after 1 half sweep
     if (sweepindex==d) || (sweepindex==1) % half a sweep
         itr=itr+1;
-        yhat=sim_volterraTT(u,TN);
+        yhat=sim_volterraTN(u,TN);
         yhat=reshape(yhat',[N*l,1]);
         e(itr)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
     end    
