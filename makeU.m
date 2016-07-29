@@ -1,13 +1,11 @@
 function U=makeU(u,M,d)
 % U=makeU(u,M,d)
 % --------------
-% Generates the N x (pM+1)^d matrix U such that y=U*vec(V) for a p-input
-% Volterra system, where vec(V) is the vectorization of the MISO Volterra
-% tensor and N=size(u,1) is the number of measured samples. For the MIMO
-% case one needs to compute y=U*[vec(V1) vec(V2) ... vec(Vl)] for l separate
-% Volterra tensors.
+% Generates the N x (pM+1)^d matrix U in the matrix equation Y=U*reshape(V,[l,p*M+1])' 
+% for the identification of a p-input-l-output Volterra system, where V
+% is the MIMO Volterra tensor and N=size(u,1) is the number of measured samples.
 %
-% U 	=   matrix, N x (pM+1)^d matrix U such that y=U*vec(V),
+% U 	=   matrix, N x (pM+1)^d matrix U such that Y=U*reshape(V,[l,p*M+1])',
 %
 % u     =   matrix, u(:,k) contains the kth input series,
 %

@@ -6,6 +6,10 @@ This package contains Matlab/Octave code for the identification of MIMO Volterra
 1. Functions
 ------------
 
+* demo
+
+Demonstrates the usage of the two algorithms ALS and MALS in the identification of SISO and MIMO Volterra systems.
+
 * yhat=sim_volterraTN(u,TN)
 
 Simulates a truncated MISO Volterra series in the Tensor Network (TN) format for given inputs u(:,1),u(:,2),....
@@ -20,7 +24,7 @@ MIMO Volterra Modified Alternating Linear Scheme (MVMALS) algorithm for solving 
 
 * U=makeU(u,M,d)
 
-Generates the N x (pM+1)^d matrix U such that y=U*vec(V) for a p-input Volterra system, where vec(V) is the vectorization of the MISO Volterra tensor and N=size(u,1) is the number of measured samples. For the MIMO case one needs to compute y=U*[vec(V1) vec(V2) ... vec(Vl)] for l separate Volterra tensors.
+Generates the N x (pM+1)^d matrix U such that y=U\*vec(V) for a p-input Volterra system, where vec(V) is the vectorization of the MISO Volterra tensor and N=size(u,1) is the number of measured samples. For the MIMO case one needs to compute y=U\*[vec(V1) vec(V2) ... vec(Vl)] for l separate Volterra tensors.
 
 
 2. Reference

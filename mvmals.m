@@ -3,14 +3,14 @@ function [TN,e]=mvmals(y,u,M,d,varargin)
 % -------------------------------
 % MIMO Volterra Modified Alternating Linear Scheme (MVMALS) algorithm for 
 % solving the MIMO Volterra system identification problem in the Tensor
-% Network format. Upper bounds on the TN ranks are limited by the total
+% Network format. Upper bounds on the TN ranks can be limited by the total
 % number of output samples.
 %
 % TN        =   cell, TN{i} contains the ith TN core of the MIMO Volterra
 %               tensor,
 %
-% e         =   vector, e(i) contains the root mean square (RMS) error at
-%               iteration i,
+% e         =   vector, e(i) contains the relative residual 
+% 				||y-yhat||_2/||y||_2 at iteration i,
 %
 % y         =   matrix, y(:,k) contains the kth output,
 %
@@ -20,13 +20,13 @@ function [TN,e]=mvmals(y,u,M,d,varargin)
 %
 % d         =   scalar, degree of truncated Volterra series, minimal d=2.
 %
-% THRESHOLD =   scalar, optional threshold on RMS error to stop iterations.
+% THRESHOLD =   scalar, optional threshold on relative residual to stop iterations.
 %               Default=1e-4.    
 %
 % Reference
 % ---------
 %
-% 06-2016, Kim Batselier
+% 06-07-2016, Kim Batselier
 
 p=size(u,2);                    % number of inputs
 uextended=[zeros(M-1,p);u];     % append zeros to inputs  
@@ -49,7 +49,8 @@ for i=1:d
 end
 yhat=sim_volterraTN(u,TN);
 yhat=reshape(yhat',[N*l,1]);
-e(1)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
+e(1)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
+%e(1)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
 
 itr=1;                          % counts number of half-sweeps
 ltr=1;                          % flag that checks whether we sweep left to right or right to left
@@ -61,7 +62,8 @@ while (itr <2) || ( (e(itr) < e(itr-1)) && (itr < MAXITR) && e(itr) > THRESHOLD)
         itr=itr+1;
         yhat=sim_volterraTN(u,TN);
         yhat=reshape(yhat',[N*l,1]);
-        e(itr)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
+        e(itr)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
+%        e(itr)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
     end     
     updatesweep;    
 end  
@@ -92,9 +94,9 @@ end
         rankg=sum(st > tol);
         % we only update the TN rank such that update of all remaining
         % cores is guaranteed
-        r2=r;
-        r2(sweepindex+1)=rankg;
-        rankg=checkRank(r2,N*l,(p*M+1)^2,sweepindex+1);
+%        r2=r;
+%        r2(sweepindex+1)=rankg;
+%        rankg=checkRank(r2,N*l,(p*M+1)^2,sweepindex+1);
         r(sweepindex+1)=rankg;
         if ltr
             % left-to-right sweep, generate left orthogonal cores

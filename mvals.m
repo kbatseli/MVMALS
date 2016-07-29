@@ -8,8 +8,8 @@ function [TN,e]=mvals(y,u,M,r,varargin)
 % TN        =   cell, TN{i} contains the ith TN core of the MIMO Volterra
 %               tensor,
 %
-% e         =   vector, e(i) contains the root mean square (RMS) error at
-%               iteration i,
+% e         =   vector, e(i) contains the relative residual 
+% 				||y-yhat||_2/||y||_2 at iteration i,
 %
 % y         =   matrix, y(:,k) contains the kth output,
 %
@@ -26,7 +26,7 @@ function [TN,e]=mvals(y,u,M,r,varargin)
 % Reference
 % ---------
 %
-% 06-2016, Kim Batselier
+% 06-07-2016, Kim Batselier
 
 p=size(u,2);                    % number of inputs
 uextended=[zeros(M-1,p);u];     % append zeros to inputs  
@@ -51,7 +51,8 @@ end
 
 yhat=sim_volterraTN(u,TN);
 yhat=reshape(yhat',[N*l,1]);
-e(1)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
+e(1)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
+%e(1)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
 
 itr=1;                          % counts number of iterations
 ltr=1;                          % flag that checks whether we sweep left to right
@@ -65,7 +66,8 @@ while itr<2 || ((e(itr) < e(itr-1)) && (itr < MAXITR) && e(itr) > THRESHOLD)
         itr=itr+1;
         yhat=sim_volterraTN(u,TN);
         yhat=reshape(yhat',[N*l,1]);
-        e(itr)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
+        e(itr)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
+%        e(itr)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
     end    
 end  
 
