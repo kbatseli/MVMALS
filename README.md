@@ -12,7 +12,7 @@ Demonstrates the usage of the two algorithms ALS and MALS in the identification 
 
 * yhat=sim_volterraTN(u,TN)
 
-Simulates a truncated MISO Volterra series in the Tensor Network (TN) format for given inputs u(:,1),u(:,2),....
+Simulates a truncated MIMO Volterra series in the Tensor Network (TN) format for given inputs u(:,1),u(:,2),....
 
 * [TN,e]=mvals(y,u,M,r,THRESHOLD)
 
