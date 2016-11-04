@@ -8,34 +8,35 @@ function yhat=sim_volterraTN(u,TN)
 %
 % u         =   matrix, u(:,k) contains the kth input,
 %
-% TN        =   cell, TN{i} contains the ith TN core of the MIMO Volterra
-%               tensor.
+% TN        =   Tensor Network.
 %
 % Reference
 % ---------
 %
-% 06-2016, Kim Batselier
-p=size(u,2);                    % number of inputs
-yhat=zeros(length(u),1);
-d=length(TN);
-r=zeros(1,d+1);
-for i=1:d
-    [r0,M,r1]=size(TN{i});
-    M=(M-1)/p;
-    r(i:i+1)=[r0 r1];
+% 06/11-2016, Kim Batselier
+
+% generate N x (pM+1) matrix U with input samples
+[N,p]=size(u);
+d=length(TN.core);
+n=TN.n(1,3);
+l=TN.n(1,2);
+M=(n-1)/p;
+U=zeros(N,n);
+u=[zeros(M-1,p);u];
+for i=M:N+M-1            
+	temp=ones(1,n);
+    for j=1:M
+        temp(2+(j-1)*p:2+j*p-1)=u(i-j+1,:);                
+    end   
+    U(i-M+1,:)=temp;
 end
-uextended=[zeros(M-1,p);u];     % append zeros to inputs      
-for j=M:length(u)+M-1
-    uj=zeros(p*M+1,1);
-    uj(1)=1;
-    for k=1:M
-        uj(2+(k-1)*p:2+k*p-1)=uextended(j-k+1,:)';                
-    end
-    temp=reshape(uj'*reshape(permute(TN{1},[2 1 3]),[(p*M+1),r(1)*r(2)]),[r(1),r(2)]);    
-    for k=2:d
-        temp=temp*reshape(uj'*reshape(permute(TN{k},[2 3 1]),[p*M+1,r(k+1)*r(k)]),[r(k+1),r(k)])';
-    end
-    yhat((j-M)*r(1)+1:(j-M+1)*r(1))=temp;
+
+yhat=U*reshape(permute(reshape(TN.core{1},TN.n(1,:)),[3 1 2 4]),[n,prod(TN.n(1,[1 2 4]))]);
+for i=2:d
+    temp=dotkron(yhat,U);
+    yhat=reshape(temp,[N*l,TN.n(i,1)*n])*reshape(TN.core{i},[prod(TN.n(i,1:3)),TN.n(i,end)]);
+    yhat=reshape(yhat,[N,l*TN.n(i,end)]);
 end
-yhat=reshape(yhat,[r(1),length(u)])';
+yhat=reshape(yhat,[N,l]);
+
 end

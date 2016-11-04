@@ -6,8 +6,7 @@ function [TN,e]=mvmals(y,u,M,d,varargin)
 % Network format. Upper bounds on the TN ranks can be limited by the total
 % number of output samples.
 %
-% TN        =   cell, TN{i} contains the ith TN core of the MIMO Volterra
-%               tensor,
+% TN        =   Tensor Network,
 %
 % e         =   vector, e(i) contains the relative residual 
 % 				||y-yhat||_2/||y||_2 at iteration i,
@@ -42,11 +41,14 @@ else
 end
 
 % initialize random cores
-TN=cell(1,d);
+TN.core=cell(1,d);
 for i=1:d
-    TN{i}=rand(r(i),p*M+1,r(i+1));
-    TN{i}=TN{i}/norm(TN{i}(:));
+    TN.core{i}=rand(r(i),p*M+1,r(i+1));
+    TN.core{i}=TN.core{i}/norm(TN.core{i}(:));
 end
+TN.n=ones(d,4);
+TN.n(:,3)=p*M+1;
+TN.n(1,2)=l;
 yhat=sim_volterraTN(u,TN);
 yhat=reshape(yhat',[N*l,1]);
 e(1)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
@@ -79,10 +81,10 @@ end
             vk1=eye(l);             % initialize row vector v_{k-1}
             vk2=1;                  % initialize column vector v_{k+2}
             for j=1:sweepindex-1
-               vk1=vk1*reshape(reshape(permute(TN{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
+               vk1=vk1*reshape(reshape(permute(TN.core{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
             end
             for j=sweepindex+2:d
-                vk2=vk2* reshape(reshape(permute(TN{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
+                vk2=vk2* reshape(reshape(permute(TN.core{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
             end        
             A((i-M)*l+1:(i-M+1)*l,:)=mkron(vk2',mkron(ui',2),vk1);
         end
@@ -97,15 +99,17 @@ end
 %        r2=r;
 %        r2(sweepindex+1)=rankg;
 %        rankg=checkRank(r2,N*l,(p*M+1)^2,sweepindex+1);
+        TN.n(sweepindex,end)=rankg;
+        TN.n(sweepindex+1,1)=rankg;
         r(sweepindex+1)=rankg;
         if ltr
             % left-to-right sweep, generate left orthogonal cores
-            TN{sweepindex}=reshape(Ut(:,1:rankg),[r(sweepindex),(p*M+1),rankg]);
-            TN{sweepindex+1}=reshape(St(1:rankg,1:rankg)*Vt(:,1:rankg)',[rankg,p*M+1,r(sweepindex+2)]);
+            TN.core{sweepindex}=reshape(Ut(:,1:rankg),[r(sweepindex),(p*M+1),rankg]);
+            TN.core{sweepindex+1}=reshape(St(1:rankg,1:rankg)*Vt(:,1:rankg)',[rankg,p*M+1,r(sweepindex+2)]);
         else
             % right-to-left sweep, generate right orthogonal cores
-            TN{sweepindex}=reshape(Ut(:,1:rankg)*St(1:rankg,1:rankg),[r(sweepindex),(p*M+1),rankg]);
-            TN{sweepindex+1}=reshape(Vt(:,1:rankg)',[rankg,p*M+1,r(sweepindex+2)]);
+            TN.core{sweepindex}=reshape(Ut(:,1:rankg)*St(1:rankg,1:rankg),[r(sweepindex),(p*M+1),rankg]);
+            TN.core{sweepindex+1}=reshape(Vt(:,1:rankg)',[rankg,p*M+1,r(sweepindex+2)]);
         end        
     end
 

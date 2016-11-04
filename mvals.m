@@ -5,8 +5,9 @@ function [TN,e]=mvals(y,u,M,r,varargin)
 % solving the MIMO Volterra system identification problem in the Tensor
 % Network format.
 %
-% TN        =   cell, TN{i} contains the ith TN core of the MIMO Volterra
-%               tensor,
+% TN        =   Tensor Network, TN.core is a cell containing the TN-cores,
+%               TN.n is a matrix where TN.n(i,:) are the dimensions of the
+%               ith TN-core,
 %
 % e         =   vector, e(i) contains the relative residual 
 % 				||y-yhat||_2/||y||_2 at iteration i,
@@ -26,7 +27,7 @@ function [TN,e]=mvals(y,u,M,r,varargin)
 % Reference
 % ---------
 %
-% 06-07-2016, Kim Batselier
+% 06/07/11 - 2016, Kim Batselier
 
 p=size(u,2);                    % number of inputs
 uextended=[zeros(M-1,p);u];     % append zeros to inputs  
@@ -42,11 +43,15 @@ else
 end 
 
 % initialize right-orthonormal cores with prescribed TN ranks
-TN=cell(1,d);
-TN{1}=rand(r(1),p*M+1,r(2));
-TN{1}=TN{1}./norm(TN{1}(:));
+TN.core=cell(1,d);
+TN.core{1}=rand(r(1),p*M+1,r(2));
+TN.core{1}=TN.core{1}./norm(TN.core{1}(:));
+TN.n(1,:)=[1 l p*M+1 r(2)];
 for i=2:d
-    TN{i}=reshape(orth(rand((p*M+1)*r(i+1),r(i))),[r(i),(p*M+1),r(i+1)]);    
+    TN.n(i,:)=[r(i) 1 p*M+1 r(i+1)];
+end
+for i=2:d
+    TN.core{i}=reshape(orth(rand((p*M+1)*r(i+1),r(i))),[r(i),(p*M+1),r(i+1)]);    
 end
 
 yhat=sim_volterraTN(u,TN);
@@ -72,10 +77,7 @@ while itr<2 || ((e(itr) < e(itr-1)) && (itr < MAXITR) && e(itr) > THRESHOLD)
 end  
 
     function updateTT
-        % first construct the linear subsystem matrix
-        if N < (p*M+1)*prod(r(sweepindex:sweepindex+1))
-            warning(['Matrix of reduced system is underdetermined: ' num2str(N) ' < ' num2str((p*M+1)*prod(r([sweepindex,sweepindex+2])))])
-        end
+%         % first construct the linear subsystem matrix
         A=zeros(N,(p*M+1)*prod(r(sweepindex:sweepindex+1)));
         for i=M:N+M-1
             ui=zeros(p*M+1,1);
@@ -86,10 +88,10 @@ end
             vk1=eye(l);     % initialize row vector v_{k-1}
             vk2=1;          % initialize column vector v_{k+1}
             for j=1:sweepindex-1
-                vk1=vk1*reshape(reshape(permute(TN{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
+                vk1=vk1*reshape(reshape(permute(TN.core{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
             end
             for j=sweepindex+1:d
-                vk2=vk2* reshape(reshape(permute(TN{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
+                vk2=vk2* reshape(reshape(permute(TN.core{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
             end
             A((i-M)*l+1:(i-M+1)*l,:)=mkron(vk2',ui',vk1);
         end
@@ -97,13 +99,13 @@ end
         if ltr
             % left-to-right sweep, generate left orthogonal cores
             [Q,R]=qr(reshape(g,[r(sweepindex)*(p*M+1),r(sweepindex+1)])); 
-            TN{sweepindex}=reshape(Q(:,1:r(sweepindex+1)),[r(sweepindex),p*M+1,r(sweepindex+1)]);
-            TN{sweepindex+1}=reshape(R(1:r(sweepindex+1),:)*reshape(TN{sweepindex+1},[r(sweepindex+1),(p*M+1)*r(sweepindex+2)]),[r(sweepindex+1),p*M+1,r(sweepindex+2)]);
+            TN.core{sweepindex}=reshape(Q(:,1:r(sweepindex+1)),[r(sweepindex),p*M+1,r(sweepindex+1)]);
+            TN.core{sweepindex+1}=reshape(R(1:r(sweepindex+1),:)*reshape(TN.core{sweepindex+1},[r(sweepindex+1),(p*M+1)*r(sweepindex+2)]),[r(sweepindex+1),p*M+1,r(sweepindex+2)]);
         else
             % right-to-left sweep, generate right orthogonal cores
             [Q,R]=qr(reshape(g,[r(sweepindex),(p*M+1)*r(sweepindex+1)])'); 
-            TN{sweepindex}=reshape(Q(:,1:r(sweepindex))',[r(sweepindex),p*M+1,r(sweepindex+1)]);
-            TN{sweepindex-1}=reshape(reshape(TN{sweepindex-1},[r(sweepindex-1)*(p*M+1),r(sweepindex)])*R(1:r(sweepindex),:)',[r(sweepindex-1),p*M+1,r(sweepindex)]);
+            TN.core{sweepindex}=reshape(Q(:,1:r(sweepindex))',[r(sweepindex),p*M+1,r(sweepindex+1)]);
+            TN.core{sweepindex-1}=reshape(reshape(TN.core{sweepindex-1},[r(sweepindex-1)*(p*M+1),r(sweepindex)])*R(1:r(sweepindex),:)',[r(sweepindex-1),p*M+1,r(sweepindex)]);
         end
     end
 

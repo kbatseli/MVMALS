@@ -1,7 +1,7 @@
 MIMO Volterra Modified Alternating Linear Scheme (MVMALS) for Matlab&copy;/Octave&copy;
 --------------------------------------------------------------------------------------------------
 
-This package contains Matlab/Octave code for the identification of MIMO Volterra systems using the (Modified) Alternating Linear Scheme (MALS). 
+This package contains Matlab/Octave code for the identification of MIMO Volterra systems using the (Modified) Alternating Linear Scheme (MALS). Tensor Networks are implemented as structures with two fields: *core* and *n*. The *core* field contains a cell of TN-cores. The *n* field contains a matrix of TN-ranks, where size(n,1) is the number of cores and size(n,2) indicates the order of the TN-core. In order to maintain consistency the values of n(1,1) and n(end,end) always need to be 1.
 
 1. Functions
 ------------

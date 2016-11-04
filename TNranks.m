@@ -14,10 +14,6 @@ function r=TNranks(TN)
 %
 % 07-2016, Kim Batselier
 
-d=length(TN);
-r=ones(1,d+1);
-for i=1:d
-    r(i)=size(TN{i},1);
-end
+r=[1 TN.n(:,end)'];
 
 end
