@@ -1,4 +1,4 @@
-function [TN,e]=mvals(y,u,M,r,varargin)
+function [TN,e]=mvals_new(y,u,M,r,varargin)
 % [TN,e]=mvals(y,u,M,r,THRESHOLD)
 % -------------------------------
 % MIMO Volterra Alternating Linear Scheme (MVALS) algorithm for 
@@ -36,28 +36,47 @@ y=reshape(y',[N*l,1]);
 d=length(r)+1;                  % degree of truncated Volterra series
 r=[l r(:)' 1];                  % append extremal TN ranks
 MAXITR=100;
+n=p*M+1;
 if ~isempty(varargin)
     THRESHOLD=varargin{1};
 else
     THRESHOLD=1e-4;
-end 
+end
+
+% construct N x n matrix U
+U=zeros(N,n);
+u=[zeros(M-1,p);u];
+for i=M:N+M-1            
+	temp=ones(1,n);
+    for j=1:M
+        temp(2+(j-1)*p:2+j*p-1)=u(i-j+1,:);                
+    end   
+    U(i-M+1,:)=temp;
+end
+u=u(M:end,:);
+Vp=cell(1,d);
+Vm=cell(1,d);
+if l==1
+    Vm{1}=ones(N,1);
+else
+    Vm{1}=eye(l);
+end
+Vp{d}=ones(N,1);
 
 % initialize right-orthonormal cores with prescribed TN ranks
 TN.core=cell(1,d);
-TN.core{1}=rand(r(1),p*M+1,r(2));
+TN.core{1}=rand(r(1),n,r(2));
 TN.core{1}=TN.core{1}./norm(TN.core{1}(:));
-TN.n(1,:)=[1 l p*M+1 r(2)];
-for i=2:d
-    TN.n(i,:)=[r(i) 1 p*M+1 r(i+1)];
-end
-for i=2:d
-    TN.core{i}=reshape(orth(rand((p*M+1)*r(i+1),r(i))),[r(i),(p*M+1),r(i+1)]);    
+TN.n(1,:)=[1 l n r(2)];
+for i=d:-1:2
+	TN.n(i,:)=[r(i) 1 n r(i+1)];
+    TN.core{i}=reshape(orth(rand((n)*r(i+1),r(i))),[r(i),(n),r(i+1)]);    
+    Vp{i-1}=dotkron(Vp{i},U)*reshape(permute(TN.core{i},[3 2 1]),[r(i+1)*n,r(i)]); % N x r_{i-1}    
 end
 
 yhat=sim_volterraTN(u,TN);
 yhat=reshape(yhat',[N*l,1]);
 e(1)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
-%e(1)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
 
 itr=1;                          % counts number of iterations
 ltr=1;                          % flag that checks whether we sweep left to right
@@ -72,40 +91,43 @@ while itr<2 || ((e(itr) < e(itr-1)) && (itr < MAXITR) && e(itr) > THRESHOLD)
         yhat=sim_volterraTN(u,TN);
         yhat=reshape(yhat',[N*l,1]);
         e(itr)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
-%        e(itr)=sqrt(norm(y-yhat)^2/N);    % RMS metric for residual
     end    
 end  
 
     function updateTT
 %         % first construct the linear subsystem matrix
-        A=zeros(N,(p*M+1)*prod(r(sweepindex:sweepindex+1)));
-        for i=M:N+M-1
-            ui=zeros(p*M+1,1);
-            ui(1)=1;
-            for j=1:M
-                ui(2+(j-1)*p:2+j*p-1)=uextended(i-j+1,:)';                
-            end        
-            vk1=eye(l);     % initialize row vector v_{k-1}
-            vk2=1;          % initialize column vector v_{k+1}
-            for j=1:sweepindex-1
-                vk1=vk1*reshape(reshape(permute(TN.core{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
-            end
-            for j=sweepindex+1:d
-                vk2=vk2* reshape(reshape(permute(TN.core{j},[3 1 2]),[r(j+1)*r(j),p*M+1])*ui,[r(j+1),r(j)])';
-            end
-            A((i-M)*l+1:(i-M+1)*l,:)=mkron(vk2',ui',vk1);
-        end
+        if l==1
+            A=dotkron(Vm{sweepindex},U,Vp{sweepindex});
+        elseif sweepindex == 1
+            A=kron(dotkron(U,Vp{sweepindex}),Vm{sweepindex});
+        else
+            A=dotkron(Vm{sweepindex},U,Vp{sweepindex});
+            A=reshape(A,[N,l,r(sweepindex)*n*r(sweepindex+1)]);
+            A=permute(A,[2 1 3]);
+            A=reshape(A,[N*l,r(sweepindex)*n*r(sweepindex+1)]);
+        end 
         g=pinv(A)*y;
         if ltr
-            % left-to-right sweep, generate left orthogonal cores
-            [Q,R]=qr(reshape(g,[r(sweepindex)*(p*M+1),r(sweepindex+1)])); 
-            TN.core{sweepindex}=reshape(Q(:,1:r(sweepindex+1)),[r(sweepindex),p*M+1,r(sweepindex+1)]);
-            TN.core{sweepindex+1}=reshape(R(1:r(sweepindex+1),:)*reshape(TN.core{sweepindex+1},[r(sweepindex+1),(p*M+1)*r(sweepindex+2)]),[r(sweepindex+1),p*M+1,r(sweepindex+2)]);
+            % left-to-right sweep, generate left orthogonal cores and update vk1
+            [Q,R]=qr(reshape(g,[r(sweepindex)*(n),r(sweepindex+1)])); 
+            TN.core{sweepindex}=reshape(Q(:,1:r(sweepindex+1)),[r(sweepindex),n,r(sweepindex+1)]);
+            TN.core{sweepindex+1}=reshape(R(1:r(sweepindex+1),:)*reshape(TN.core{sweepindex+1},[r(sweepindex+1),(n)*r(sweepindex+2)]),[r(sweepindex+1),n,r(sweepindex+2)]);
+            if l==1
+                Vm{sweepindex+1}=dotkron(Vm{sweepindex},U)*reshape(TN.core{sweepindex},[r(sweepindex)*n,r(sweepindex+1)]); % N x r_{i}
+            elseif sweepindex==1
+                Vm{sweepindex+1}=U*reshape(permute(TN.core{sweepindex},[2 1 3]),[n,r(sweepindex)*r(sweepindex+1)]); %N x r_{i-1}r_i
+                Vm{sweepindex+1}=reshape(Vm{sweepindex+1},[N,r(sweepindex)*r(sweepindex+1)]);                
+            else
+                Vm{sweepindex+1}=reshape(dotkron(Vm{sweepindex},U),[N*l,r(sweepindex)*n])*reshape(TN.core{sweepindex},[r(sweepindex)*n,r(sweepindex+1)]);
+                Vm{sweepindex+1}=reshape(Vm{sweepindex+1},[N,l*r(sweepindex+1)]);
+            end
         else
-            % right-to-left sweep, generate right orthogonal cores
-            [Q,R]=qr(reshape(g,[r(sweepindex),(p*M+1)*r(sweepindex+1)])'); 
-            TN.core{sweepindex}=reshape(Q(:,1:r(sweepindex))',[r(sweepindex),p*M+1,r(sweepindex+1)]);
-            TN.core{sweepindex-1}=reshape(reshape(TN.core{sweepindex-1},[r(sweepindex-1)*(p*M+1),r(sweepindex)])*R(1:r(sweepindex),:)',[r(sweepindex-1),p*M+1,r(sweepindex)]);
+            % right-to-left sweep, generate right orthogonal cores and update vk2
+            [Q,R]=qr(reshape(g,[r(sweepindex),(n)*r(sweepindex+1)])'); 
+            TN.core{sweepindex}=reshape(Q(:,1:r(sweepindex))',[r(sweepindex),n,r(sweepindex+1)]);
+            TN.core{sweepindex-1}=reshape(reshape(TN.core{sweepindex-1},[r(sweepindex-1)*(n),r(sweepindex)])*R(1:r(sweepindex),:)',[r(sweepindex-1),n,r(sweepindex)]);
+            Vp{sweepindex-1}=dotkron(Vp{sweepindex},U)*reshape(permute(TN.core{sweepindex},[3 2 1]),[r(sweepindex+1)*n,r(sweepindex)]); % N x r_{i-1}    
+
         end
     end
 
