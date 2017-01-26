@@ -1,4 +1,4 @@
-function [TN,e]=mvals_new(y,u,M,r,varargin)
+function [TN,e]=mvals(y,u,M,r,varargin)
 % [TN,e]=mvals(y,u,M,r,THRESHOLD)
 % -------------------------------
 % MIMO Volterra Alternating Linear Scheme (MVALS) algorithm for 
