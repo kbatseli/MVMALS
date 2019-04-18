@@ -32,6 +32,7 @@ uextended=[zeros(M-1,p);u];     % append zeros to inputs
 [N,l]=size(y);
 y=reshape(y',[N*l,1]);
 r=[l ones(1,d)];                % initialize TN ranks to l and all 1's
+n=p*M+1;
 
 MAXITR=10;
 if ~isempty(varargin)
@@ -40,11 +41,20 @@ else
     THRESHOLD=1e-4;
 end
 
-% initialize random cores
+% % initialize random cores
+% TN.core=cell(1,d);
+% for i=1:d
+%     TN.core{i}=rand(r(i),p*M+1,r(i+1));
+%     TN.core{i}=TN.core{i}/norm(TN.core{i}(:));
+% end
+% initialize TN in site-1-mixed-canonical-form
 TN.core=cell(1,d);
-for i=1:d
-    TN.core{i}=rand(r(i),p*M+1,r(i+1));
-    TN.core{i}=TN.core{i}/norm(TN.core{i}(:));
+TN.core{1}=rand(r(1),n,r(2));
+TN.core{1}=TN.core{1}./norm(TN.core{1}(:));
+TN.n(1,:)=[1 l n r(2)];
+for i=d:-1:2
+	TN.n(i,:)=[r(i) 1 n r(i+1)];
+    TN.core{i}=permute(reshape(orth(rand((n)*r(i+1),r(i))),[r(i+1),(n),r(i)]),[3,2,1]);    
 end
 TN.n=ones(d,4);
 TN.n(:,3)=p*M+1;

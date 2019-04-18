@@ -70,7 +70,7 @@ TN.core{1}=TN.core{1}./norm(TN.core{1}(:));
 TN.n(1,:)=[1 l n r(2)];
 for i=d:-1:2
 	TN.n(i,:)=[r(i) 1 n r(i+1)];
-    TN.core{i}=reshape(orth(rand((n)*r(i+1),r(i))),[r(i),(n),r(i+1)]);    
+    TN.core{i}=permute(reshape(orth(rand((n)*r(i+1),r(i))),[r(i+1),(n),r(i)]),[3,2,1]);    
     Vp{i-1}=dotkron(Vp{i},U)*reshape(permute(TN.core{i},[3 2 1]),[r(i+1)*n,r(i)]); % N x r_{i-1}    
 end
 
