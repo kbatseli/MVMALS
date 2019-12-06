@@ -76,15 +76,12 @@ for i=d:-1:2
     Vp{i-1}=dotkron(Vp{i},U)*reshape(permute(TN.core{i},[3 2 1]),[r(i+1)*n,r(i)]); % N x r_{i-1}    
 end
 
-yhat=sim_volterraTN(u,TN);
-yhat=reshape(yhat',[N*l,1]);
-e(1)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
-
+e(1)=THRESHOLD+1;               % We always do at least 1 core update
 itr=1;                          % counts number of iterations
 ltr=1;                          % flag that checks whether we sweep left to right
 sweepindex=1;                   % index that indicates which TT core will be updated
 
-while itr<2 || ( (itr < MAXITR) && e(itr) > THRESHOLD)
+while (itr < MAXITR) && e(itr) > THRESHOLD
     updateTT;
     updatesweep;
 end  
@@ -104,6 +101,7 @@ end
         g=pinv(A)*y;
         itr=itr+1;
         e(itr)=norm(A(l*M+1:end,:)*g-y(l*M+1:end))/norm(y(l*M+1:end));
+        
         
         if ltr
             % left-to-right sweep, generate left orthogonal cores and update vk1
