@@ -1,6 +1,6 @@
 function [TN,e]=mvals(y,u,M,r,varargin)
-% [TN,e]=mvals(y,u,M,r,THRESHOLD)
-% -------------------------------
+% [TN,e]=mvals(y,u,M,r) or [TN,e]=mvals(y,u,M,r,THRESHOLD,MAXITR)
+% ---------------------------------------------------------------
 % MIMO Volterra Alternating Linear Scheme (MVALS) algorithm for 
 % solving the MIMO Volterra system identification problem in the Tensor
 % Network format.
@@ -24,23 +24,25 @@ function [TN,e]=mvals(y,u,M,r,varargin)
 % THRESHOLD =   scalar, optional threshold on RMS error to stop iterations.
 %               Default=1e-4.    
 %
+% MAXITR    =   scalar, optional maximum number of iterations. Default=100.    
+%
 % Reference
 % ---------
 %
 % 06/07/11 - 2016, Kim Batselier
 
 p=size(u,2);                    % number of inputs
-uextended=[zeros(M-1,p);u];     % append zeros to inputs  
 [N,l]=size(y);
 y=reshape(y',[N*l,1]);
 d=length(r)+1;                  % degree of truncated Volterra series
 r=[l r(:)' 1];                  % append extremal TN ranks
-MAXITR=100;
 n=p*M+1;
 if ~isempty(varargin)
     THRESHOLD=varargin{1};
+    MAXITR=varargin{2};
 else
     THRESHOLD=1e-4;
+    MAXITR=100;
 end
 
 % construct N x n matrix U
@@ -82,16 +84,9 @@ itr=1;                          % counts number of iterations
 ltr=1;                          % flag that checks whether we sweep left to right
 sweepindex=1;                   % index that indicates which TT core will be updated
 
-while itr<2 || ((e(itr) < e(itr-1)) && (itr < MAXITR) && e(itr) > THRESHOLD)
+while itr<2 || ( (itr < MAXITR) && e(itr) > THRESHOLD)
     updateTT;
     updatesweep;
-    % only check residual after 1 half sweep
-    if (sweepindex==d) || (sweepindex==1) % half a sweep
-        itr=itr+1;
-        yhat=sim_volterraTN(u,TN);
-        yhat=reshape(yhat',[N*l,1]);
-        e(itr)=norm(y(l*M+1:end)-yhat(l*M+1:end))/norm(y(l*M+1:end));
-    end    
 end  
 
     function updateTT
@@ -107,6 +102,9 @@ end
             A=reshape(A,[N*l,r(sweepindex)*n*r(sweepindex+1)]);
         end 
         g=pinv(A)*y;
+        itr=itr+1;
+        e(itr)=norm(A(l*M+1:end,:)*g-y(l*M+1:end))/norm(y(l*M+1:end));
+        
         if ltr
             % left-to-right sweep, generate left orthogonal cores and update vk1
             [Q,R]=qr(reshape(g,[r(sweepindex)*(n),r(sweepindex+1)])); 
